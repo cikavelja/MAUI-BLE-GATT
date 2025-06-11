@@ -1,0 +1,1 @@
+// Removed: Duplicate of MauiBleApp2.Core.ViewModels.DeviceScanViewModel

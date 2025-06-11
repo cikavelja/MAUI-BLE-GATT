@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:MauiBleApp2.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="MauiBleApp2.Views.DeviceDetailsPage"
+             x:Name="PageRoot"
+             Title="{Binding Title}">
+    
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior EventName="Appearing" 
+                                       Command="{Binding InitializeCommand}" />
+    </ContentPage.Behaviors>
+    
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="20">
+        <!-- Device Info -->
+        <Frame Grid.Row="0" BorderColor="LightGray" Margin="0,0,0,10">
+            <VerticalStackLayout Spacing="5">
+                <Label Text="{Binding Device.Name}" FontSize="20" FontAttributes="Bold" />
+                <Label Text="{Binding Device.Id}" FontSize="12" TextColor="Gray" />
+                <HorizontalStackLayout Spacing="5">
+                    <Label Text="Status:" FontAttributes="Bold" />
+                    <Label Text="{Binding Device.IsConnected, Converter={StaticResource BoolToConnectionConverter}}" 
+                           TextColor="{Binding Device.IsConnected, Converter={StaticResource BoolToColorConverter}}" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Frame>
+        
+        <!-- Services -->
+        <VerticalStackLayout Grid.Row="1" Spacing="10" Margin="0,0,0,10">
+            <Label Text="GATT Services" FontSize="16" FontAttributes="Bold" />
+            <CollectionView ItemsSource="{Binding Services}" 
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedService}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="0,2" Padding="10" BorderColor="LightGray">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding BindingContext.ServiceTappedCommand, Source={x:Reference PageRoot}}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+                            <Label Text="{Binding Uuid}" />
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <Button Text="Load Characteristics" 
+                    Command="{Binding LoadCharacteristicsCommand}" 
+                    IsEnabled="{Binding IsServiceSelected}" 
+                    HorizontalOptions="Start" />
+        </VerticalStackLayout>
+        
+        <!-- Characteristics -->
+        <VerticalStackLayout Grid.Row="2" Spacing="10" Margin="0,0,0,10" IsVisible="{Binding IsServiceSelected}">
+            <Label Text="Characteristics" FontSize="16" FontAttributes="Bold" />
+            <CollectionView ItemsSource="{Binding Characteristics}" 
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedCharacteristic}"
+                            HeightRequest="150">
+                <CollectionView.EmptyView>
+                    <Label Text="No characteristics found for this service" 
+                           HorizontalOptions="Center" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="0,2" Padding="10" BorderColor="LightGray">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding BindingContext.CharacteristicTappedCommand, Source={x:Reference PageRoot}}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Uuid}" />
+                                <Label Grid.Row="1" Grid.Column="0" FontSize="12">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="Read: " FontAttributes="Bold" />
+                                            <Span Text="{Binding CanRead, Converter={StaticResource BoolToYesNoConverter}}" />
+                                            <Span Text="  Write: " FontAttributes="Bold" />
+                                            <Span Text="{Binding CanWrite, Converter={StaticResource BoolToYesNoConverter}}" />
+                                            <Span Text="  Notify: " FontAttributes="Bold" />
+                                            <Span Text="{Binding CanNotify, Converter={StaticResource BoolToYesNoConverter}}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+        
+        <!-- Characteristic Operations -->
+        <ScrollView Grid.Row="3" IsVisible="{Binding IsCharacteristicSelected}">
+            <VerticalStackLayout Spacing="15">
+                <!-- Read Operation -->
+                <Frame BorderColor="LightGray" Padding="10" IsVisible="{Binding CanRead}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Read Value" FontSize="16" FontAttributes="Bold" />
+                        <Button Text="Read" 
+                                Command="{Binding ReadCharacteristicCommand}" 
+                                HorizontalOptions="Start" />
+                        <Frame BorderColor="LightGray" Padding="10" BackgroundColor="LightGray">
+                            <Label Text="{Binding ReadText}" />
+                        </Frame>
+                    </VerticalStackLayout>
+                </Frame>
+                
+                <!-- Write Operation -->
+                <Frame BorderColor="LightGray" Padding="10" IsVisible="{Binding CanWrite}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Write Value" FontSize="16" FontAttributes="Bold" />
+                        <Entry Text="{Binding WriteText}" Placeholder="Enter text to write..." />
+                        <Button Text="Write" 
+                                Command="{Binding WriteCharacteristicCommand}" 
+                                HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                </Frame>
+                
+                <!-- Notifications -->
+                <Frame BorderColor="LightGray" Padding="10" IsVisible="{Binding CanNotify}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Notifications" FontSize="16" FontAttributes="Bold" />
+                        <Button Text="{Binding NotificationsEnabled, Converter={StaticResource NotificationsButtonTextConverter}}" 
+                                Command="{Binding ToggleNotificationsCommand}" 
+                                HorizontalOptions="Start" />
+                        <Frame BorderColor="LightGray" Padding="10" BackgroundColor="LightGray"
+                                IsVisible="{Binding NotificationsEnabled}">
+                            <Label Text="{Binding NotificationText}" />
+                        </Frame>
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+        </ScrollView>
+        
+        <!-- Disconnect Button -->
+        <Button Grid.Row="3"
+                Text="Disconnect" 
+                Command="{Binding DisconnectCommand}" 
+                VerticalOptions="End"
+                HorizontalOptions="Center" />
+        
+        <!-- Busy Indicator -->
+        <ActivityIndicator Grid.RowSpan="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" 
+                            HorizontalOptions="Center" VerticalOptions="Center" />
+    </Grid>
+</ContentPage>

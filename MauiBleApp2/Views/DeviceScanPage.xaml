@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:MauiBleApp2.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="MauiBleApp2.Views.DeviceScanPage"
+             x:Name="PageRoot"
+             Title="{Binding Title}">
+    
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20">
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,0,0,10">
+            <Label Text="BLE Device Scanner" FontSize="24" FontAttributes="Bold"/>
+            <Label Text="Scan for and connect to Bluetooth Low Energy devices" />
+            
+            <HorizontalStackLayout Spacing="5">
+                <Label Text="Bluetooth Status:" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Label Text="{Binding IsBluetoothEnabled, Converter={StaticResource BoolToStatusConverter}}" 
+                       TextColor="{Binding IsBluetoothEnabled, Converter={StaticResource BoolToColorConverter}}" 
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+        
+        <!-- Device List -->
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsScanning}">
+            <CollectionView ItemsSource="{Binding Devices}"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedDevice}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="No devices found" FontSize="18" HorizontalOptions="Center" />
+                        <Label Text="Tap the Scan button to start searching for BLE devices" 
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="0,5" Padding="10" BorderColor="LightGray">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding BindingContext.DeviceTappedCommand, Source={x:Reference PageRoot}}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                <Label Grid.Row="0" Grid.Column="0" 
+                                       Text="{Binding Name, StringFormat='{0}'}" 
+                                       FontAttributes="Bold" />
+                                
+                                <Label Grid.Row="1" Grid.Column="0" 
+                                       Text="{Binding Id}" 
+                                       FontSize="12" TextColor="Gray" />
+                                
+                                <Label Grid.Row="0" Grid.Column="1" 
+                                       Text="{Binding Rssi, StringFormat='{0} dBm'}" 
+                                       HorizontalOptions="End" />
+                                
+                                <Label Grid.Row="1" Grid.Column="1" 
+                                       Text="{Binding IsConnected, Converter={StaticResource BoolToConnectionConverter}}" 
+                                       TextColor="{Binding IsConnected, Converter={StaticResource BoolToColorConverter}}"
+                                       FontSize="12" HorizontalOptions="End" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        
+        <!-- Control Buttons -->
+        <HorizontalStackLayout Grid.Row="2" Spacing="10" HorizontalOptions="Center">
+
+            <Button Text="{Binding IsScanning, Converter={StaticResource ScanButtonTextConverter}}" 
+                    Command="{Binding ToggleScanCommand}"
+                    IsEnabled="{Binding IsBluetoothEnabled}"
+
+                    TextColor="Black"
+                    HorizontalOptions="Center" />
+            
+            <Button Text="Connect" 
+                    Command="{Binding ConnectToDeviceCommand}"
+                    IsEnabled="{Binding IsDeviceSelected}"
+                    HorizontalOptions="Center" />
+        </HorizontalStackLayout>
+        
+        <!-- Busy Indicator -->
+        <ActivityIndicator Grid.RowSpan="3" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" 
+                           HorizontalOptions="Center" VerticalOptions="Center" />
+    </Grid>
+    
+</ContentPage>

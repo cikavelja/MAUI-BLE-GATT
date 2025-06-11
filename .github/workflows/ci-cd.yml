@@ -1,0 +1,147 @@
+name: MAUI BLE App CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to store'
+        type: boolean
+        default: false
+        
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Install MAUI Workload
+      run: dotnet workload install maui
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --no-restore /p:Configuration=Release
+      
+    - name: Test
+      run: dotnet test --no-build --verbosity normal /p:Configuration=Release
+
+  build-android:
+    needs: build-and-test
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Setup Java SDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'microsoft'
+        java-version: '17'
+        
+    - name: Install MAUI Workload
+      run: dotnet workload install maui
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build Android App
+      run: dotnet build MauiBleApp2/MauiBleApp2.csproj -f net8.0-android -c Release
+      
+    - name: Sign Android App
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        # This is a placeholder. In a real setup, you'd download your keystore from secrets
+        # and use it to sign the APK/AAB
+        echo "Signing Android app (placeholder)"
+        
+    - name: Upload Android Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-app
+        path: MauiBleApp2/bin/Release/net8.0-android/*.apk
+
+  build-ios:
+    needs: build-and-test
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Install MAUI Workload
+      run: dotnet workload install maui
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build iOS App
+      run: dotnet build MauiBleApp2/MauiBleApp2.csproj -f net8.0-ios -c Release
+      env:
+        APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        
+    - name: Upload iOS Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-app
+        path: MauiBleApp2/bin/Release/net8.0-ios/*.ipa
+
+  deploy-android:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
+    needs: build-android
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download Android Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: android-app
+        
+    - name: Deploy to Google Play Internal Testing
+      # In a real setup, you'd use fastlane or the Google Play API to upload to internal testing
+      run: |
+        echo "Deploying to Google Play Internal Testing (placeholder)"
+        echo "To implement real deployment, use fastlane or the Google Play API"
+
+  deploy-ios:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
+    needs: build-ios
+    runs-on: macos-latest
+    
+    steps:
+    - name: Download iOS Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ios-app
+        
+    - name: Deploy to TestFlight
+      # In a real setup, you'd use fastlane to upload to TestFlight
+      run: |
+        echo "Deploying to TestFlight (placeholder)"
+        echo "To implement real deployment, use fastlane to upload to App Store Connect"
